@@ -7,6 +7,10 @@ const envSchema = z.object({
   JWT_SECRET: z.string().min(16, "JWT_SECRET must be at least 16 characters"),
   JWT_EXPIRES_IN: z.string().default("7d"),
   CORS_ORIGIN: z.string().default("http://localhost:5173"),
+  RENDER_EXTERNAL_URL: z.string().url().optional(),
+  PUBLIC_URL: z.string().url().optional(),
+  SWAGGER_USER: z.string().default("admin"),
+  SWAGGER_PASSWORD: z.string().default("ok"),
 });
 
 export type Env = z.infer<typeof envSchema>;
@@ -21,3 +25,14 @@ function loadEnv(): Env {
 }
 
 export const env = loadEnv();
+
+/** Public base URL — Render sets RENDER_EXTERNAL_URL automatically. */
+export function getPublicBaseUrl(): string {
+  const raw = env.RENDER_EXTERNAL_URL ?? env.PUBLIC_URL;
+  if (raw) return raw.replace(/\/$/, "");
+  return `http://localhost:${env.PORT}`;
+}
+
+export function getSwaggerDocsUrl(): string {
+  return `${getPublicBaseUrl()}/api/docs`;
+}

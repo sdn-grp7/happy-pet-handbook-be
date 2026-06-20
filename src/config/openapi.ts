@@ -1,11 +1,33 @@
-export const openApiSpec = {
+import { env } from "./env.js";
+
+function buildSwaggerServers() {
+  const servers: { url: string; description: string }[] = [];
+
+  const productionUrl = env.RENDER_EXTERNAL_URL ?? env.PUBLIC_URL;
+  if (productionUrl) {
+    servers.push({
+      url: productionUrl.replace(/\/$/, ""),
+      description: "Production (Render)",
+    });
+  }
+
+  servers.push({
+    url: `http://localhost:${env.PORT}`,
+    description: "Local development",
+  });
+
+  return servers;
+}
+
+export function getOpenApiSpec() {
+  return {
   openapi: "3.0.3",
   info: {
     title: "Happy Pet Handbook API",
     version: "1.0.0",
     description: "Backend API for PawPath — auth, contact, and more.",
   },
-  servers: [{ url: "http://localhost:3001", description: "Local development" }],
+  servers: buildSwaggerServers(),
   tags: [
     { name: "Health", description: "Server health checks" },
     { name: "Auth", description: "Registration and login" },
@@ -222,4 +244,5 @@ export const openApiSpec = {
       },
     },
   },
-} as const;
+  };
+}
