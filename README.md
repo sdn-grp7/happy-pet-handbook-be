@@ -14,6 +14,15 @@ npm run dev
 
 Server runs at `http://localhost:3001` by default.
 
+## API Docs (Swagger)
+
+With the server running, open:
+
+- **Swagger UI:** [http://localhost:3001/api/docs](http://localhost:3001/api/docs)
+- **OpenAPI JSON:** [http://localhost:3001/api/docs.json](http://localhost:3001/api/docs.json)
+
+Use **Authorize** in Swagger UI and paste `Bearer <your-jwt>` to test `/api/auth/me`.
+
 ## API Endpoints
 
 | Method | Path | Auth | Description |
