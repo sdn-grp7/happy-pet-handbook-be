@@ -2,7 +2,7 @@ import cors from "cors";
 import express from "express";
 import helmet from "helmet";
 import morgan from "morgan";
-import { env } from "./config/env.js";
+import { env, getCorsOrigins } from "./config/env.js";
 import { setupSwagger } from "./config/swagger.js";
 import apiRoutes from "./routes.js";
 import { errorHandler } from "./shared/errors.js";
@@ -19,7 +19,7 @@ export function createApp() {
   );
   app.use(
     cors({
-      origin: env.CORS_ORIGIN,
+      origin: getCorsOrigins(),
       credentials: true,
     }),
   );

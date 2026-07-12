@@ -18,10 +18,10 @@ Server runs at `http://localhost:3001` by default.
 
 Protected with **HTTP Basic Auth** (browser login popup).
 
-| Variable | Default |
-|----------|---------|
-| `SWAGGER_USER` | `admin` |
-| `SWAGGER_PASSWORD` | `ok` |
+| Variable           | Default |
+| ------------------ | ------- |
+| `SWAGGER_USER`     | `admin` |
+| `SWAGGER_PASSWORD` | `ok`    |
 
 - **Local:** `http://localhost:3001/api/docs`
 - **Render:** `https://happy-pet-hanhbook-be.onrender.com/api/docs`
