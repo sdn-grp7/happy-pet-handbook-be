@@ -9,6 +9,7 @@ import { errorHandler } from "./shared/errors.js";
 
 export function createApp() {
   const app = express();
+  const allowedOrigins = getCorsOrigins();
 
   setupSwagger(app);
 
@@ -19,7 +20,17 @@ export function createApp() {
   );
   app.use(
     cors({
-      origin: getCorsOrigins(),
+      origin(origin, callback) {
+        // Same-origin / non-browser tools (curl, Swagger server-side) send no Origin
+        if (!origin) {
+          callback(null, true);
+          return;
+        }
+        if (allowedOrigins.includes(origin)) {
+          callback(null, origin);
+          return;
+        }
+        callback(null, false);      },
       credentials: true,
     }),
   );
