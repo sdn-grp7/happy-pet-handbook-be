@@ -23,15 +23,32 @@ With the server running, open:
 
 Use **Authorize** in Swagger UI and paste `Bearer <your-jwt>` to test `/api/auth/me`.
 
+## Project structure
+
+```
+src/
+  config/           # env, db, swagger
+  shared/           # AppError, validate middleware, express types
+  features/
+    auth/           # Google + email auth, User model, JWT
+    contact/        # contact form
+    health/         # health check
+  app.ts
+  routes.ts         # mounts /api/*
+  index.ts
+```
+
 ## API Endpoints
 
-| Method | Path | Auth | Description |
-|--------|------|------|-------------|
-| GET | `/api/health` | — | Health check |
-| POST | `/api/auth/register` | — | Register (`user` role) |
-| POST | `/api/auth/login` | — | Login, returns JWT |
-| GET | `/api/auth/me` | JWT | Current user profile |
-| POST | `/api/contact` | — | Submit contact form |
+| Method | Path                 | Auth | Description            |
+| ------ | -------------------- | ---- | ---------------------- |
+| GET    | `/api/health`        | —    | Health check           |
+| POST   | `/api/auth/register` | —    | Register (`user` role) |
+| POST   | `/api/auth/login`    | —    | Login, returns JWT     |
+| POST   | `/api/auth/google`   | —    | Google ID token login  |
+| GET    | `/api/auth/me`       | JWT  | Current user profile   |
+| PATCH  | `/api/auth/me`       | JWT  | Update name/avatar     |
+| POST   | `/api/contact`       | —    | Submit contact form    |
 
 ## Roles
 
