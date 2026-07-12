@@ -79,6 +79,48 @@ export function getOpenApiSpec() {
           name: { type: "string", example: "Mai Nguyen" },
           email: { type: "string", example: "mai@example.com" },
           role: { type: "string", enum: ["user"], example: "user" },
+          avatar: {
+            type: "string",
+            format: "uri",
+            example: "https://res.cloudinary.com/demo/image/upload/avatar.jpg",
+          },
+          googleId: { type: "string", example: "108234567890123456789" },
+          hasPassword: { type: "boolean", example: true },
+          createdAt: { type: "string", format: "date-time" },
+        },
+      },
+      GoogleLoginRequest: {
+        type: "object",
+        required: ["idToken"],
+        properties: {
+          idToken: { type: "string", example: "eyJhbGciOiJSUzI1NiIsImtpZCI6..." },
+        },
+      },
+      UpdateMeRequest: {
+        type: "object",
+        properties: {
+          name: { type: "string", minLength: 1, maxLength: 100 },
+          avatar: { type: "string", format: "uri" },
+        },
+      },
+      ChangePasswordRequest: {
+        type: "object",
+        required: ["newPassword"],
+        properties: {
+          currentPassword: {
+            type: "string",
+            minLength: 1,
+            example: "oldpassword",
+            description: "Required when the account already has a password",
+          },
+          newPassword: { type: "string", minLength: 8, maxLength: 128, example: "newpassword123" },
+        },
+      },
+      ChangePasswordResponse: {
+        type: "object",
+        properties: {
+          message: { type: "string", example: "Password updated" },
+          user: { $ref: "#/components/schemas/User" },
         },
       },
       AuthResponse: {
@@ -194,6 +236,38 @@ export function getOpenApiSpec() {
         },
       },
     },
+    "/api/auth/google": {
+      post: {
+        tags: ["Auth"],
+        summary: "Sign in with Google ID token",
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: { $ref: "#/components/schemas/GoogleLoginRequest" },
+            },
+          },
+        },
+        responses: {
+          "200": {
+            description: "Login successful (creates or links account)",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/AuthResponse" },
+              },
+            },
+          },
+          "401": {
+            description: "Invalid Google token",
+            content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } },
+          },
+          "503": {
+            description: "Google or Cloudinary not configured",
+            content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } },
+          },
+        },
+      },
+    },
     "/api/auth/me": {
       get: {
         tags: ["Auth"],
@@ -210,6 +284,66 @@ export function getOpenApiSpec() {
           },
           "401": {
             description: "Unauthorized",
+            content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } },
+          },
+        },
+      },
+      patch: {
+        tags: ["Auth"],
+        summary: "Update current user profile",
+        security: [{ bearerAuth: [] }],
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: { $ref: "#/components/schemas/UpdateMeRequest" },
+            },
+          },
+        },
+        responses: {
+          "200": {
+            description: "Updated user",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/MeResponse" },
+              },
+            },
+          },
+          "401": {
+            description: "Unauthorized",
+            content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } },
+          },
+        },
+      },
+    },
+    "/api/auth/change-password": {
+      post: {
+        tags: ["Auth"],
+        summary: "Change current user password",
+        security: [{ bearerAuth: [] }],
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: { $ref: "#/components/schemas/ChangePasswordRequest" },
+            },
+          },
+        },
+        responses: {
+          "200": {
+            description: "Password updated",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ChangePasswordResponse" },
+              },
+            },
+          },
+          "400": {
+            description: "Invalid request",
+            content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } },
+          },
+          "401": {
+            description: "Unauthorized or wrong current password",
             content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } },
           },
         },

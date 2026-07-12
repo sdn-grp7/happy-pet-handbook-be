@@ -1,11 +1,13 @@
 import mongoose, { Schema, type InferSchemaType } from "mongoose";
-import type { UserRole } from "../types/auth.js";
+import type { UserRole } from "./types.js";
 
 const userSchema = new Schema(
   {
     name: { type: String, required: true, trim: true },
     email: { type: String, required: true, unique: true, lowercase: true, trim: true },
-    password: { type: String, required: true, select: false },
+    password: { type: String, required: false, select: false },
+    googleId: { type: String, unique: true, sparse: true },
+    avatar: { type: String },
     role: { type: String, enum: ["user"] satisfies UserRole[], default: "user" },
   },
   { timestamps: true },

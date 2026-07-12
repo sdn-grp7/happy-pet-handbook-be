@@ -1,5 +1,5 @@
 import type { Request, Response } from "express";
-import { ContactMessage } from "../models/ContactMessage.js";
+import { ContactMessage } from "./model.js";
 
 export async function submitContact(req: Request, res: Response) {
   const { name, email, message } = req.body as { name: string; email: string; message: string };

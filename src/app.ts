@@ -4,8 +4,8 @@ import helmet from "helmet";
 import morgan from "morgan";
 import { env } from "./config/env.js";
 import { setupSwagger } from "./config/swagger.js";
-import { errorHandler } from "./utils/auth.js";
-import apiRoutes from "./routes/index.js";
+import apiRoutes from "./routes.js";
+import { errorHandler } from "./shared/errors.js";
 
 export function createApp() {
   const app = express();
