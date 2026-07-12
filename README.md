@@ -16,22 +16,46 @@ Server runs at `http://localhost:3001` by default.
 
 ## API Docs (Swagger)
 
-With the server running, open:
+Protected with **HTTP Basic Auth** (browser login popup).
 
-- **Swagger UI:** [http://localhost:3001/api/docs](http://localhost:3001/api/docs)
-- **OpenAPI JSON:** [http://localhost:3001/api/docs.json](http://localhost:3001/api/docs.json)
+| Variable           | Default |
+| ------------------ | ------- |
+| `SWAGGER_USER`     | `admin` |
+| `SWAGGER_PASSWORD` | `ok`    |
+
+- **Local:** `http://localhost:3001/api/docs`
+- **Render:** `https://happy-pet-hanhbook-be.onrender.com/api/docs`
+
+On Render, `RENDER_EXTERNAL_URL` is set automatically — startup logs print the deploy Swagger URL.
 
 Use **Authorize** in Swagger UI and paste `Bearer <your-jwt>` to test `/api/auth/me`.
 
+## Project structure
+
+```
+src/
+  config/           # env, db, swagger
+  shared/           # AppError, validate middleware, express types
+  features/
+    auth/           # Google + email auth, User model, JWT
+    contact/        # contact form
+    health/         # health check
+  app.ts
+  routes.ts         # mounts /api/*
+  index.ts
+```
+
 ## API Endpoints
 
-| Method | Path | Auth | Description |
-|--------|------|------|-------------|
-| GET | `/api/health` | — | Health check |
-| POST | `/api/auth/register` | — | Register (`user` role) |
-| POST | `/api/auth/login` | — | Login, returns JWT |
-| GET | `/api/auth/me` | JWT | Current user profile |
-| POST | `/api/contact` | — | Submit contact form |
+| Method | Path                 | Auth | Description            |
+| ------ | -------------------- | ---- | ---------------------- |
+| GET    | `/api/health`        | —    | Health check           |
+| POST   | `/api/auth/register` | —    | Register (`user` role) |
+| POST   | `/api/auth/login`    | —    | Login, returns JWT     |
+| POST   | `/api/auth/google`   | —    | Google ID token login  |
+| GET    | `/api/auth/me`       | JWT  | Current user profile   |
+| PATCH  | `/api/auth/me`       | JWT  | Update name/avatar     |
+| POST   | `/api/contact`       | —    | Submit contact form    |
 
 ## Roles
 

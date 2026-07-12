@@ -1,7 +1,7 @@
 import "dotenv/config";
 import { createApp } from "./app.js";
 import { connectDB } from "./config/db.js";
-import { env } from "./config/env.js";
+import { env, getDeployBaseUrl } from "./config/env.js";
 
 async function main() {
   await connectDB();
@@ -9,8 +9,13 @@ async function main() {
   const app = createApp();
 
   app.listen(env.PORT, () => {
-    console.log(`Server running on http://localhost:${env.PORT}`);
-    console.log(`Swagger docs:  http://localhost:${env.PORT}/api/docs`);
+    const localBase = `http://localhost:${env.PORT}`;
+    const deployBase = getDeployBaseUrl();
+
+    console.log(`API docs (local):  ${localBase}/api/docs`);
+    if (deployBase && deployBase !== localBase) {
+      console.log(`API docs (server): ${deployBase}/api/docs`);
+    }
   });
 }
 

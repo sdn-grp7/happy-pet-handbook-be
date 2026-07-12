@@ -1,6 +1,6 @@
 import type { NextFunction, Request, Response } from "express";
 import type { ZodSchema } from "zod";
-import { AppError } from "../utils/auth.js";
+import { AppError } from "../errors.js";
 
 type RequestTarget = "body" | "query" | "params";
 

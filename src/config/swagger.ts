@@ -1,16 +1,20 @@
 import type { Express } from "express";
 import swaggerUi from "swagger-ui-express";
-import { openApiSpec } from "./openapi.js";
+import { getOpenApiSpec } from "./openapi.js";
+import { swaggerBasicAuth } from "../middleware/swaggerAuth.js";
 
 export function setupSwagger(app: Express) {
-  app.get("/api/docs.json", (_req, res) => {
-    res.json(openApiSpec);
+  const spec = getOpenApiSpec();
+
+  app.get("/api/docs.json", swaggerBasicAuth, (_req, res) => {
+    res.json(spec);
   });
 
   app.use(
     "/api/docs",
+    swaggerBasicAuth,
     swaggerUi.serve,
-    swaggerUi.setup(openApiSpec, {
+    swaggerUi.setup(spec, {
       customSiteTitle: "Happy Pet Handbook API",
     }),
   );

@@ -2,13 +2,14 @@ import cors from "cors";
 import express from "express";
 import helmet from "helmet";
 import morgan from "morgan";
-import { env } from "./config/env.js";
+import { env, getCorsOrigins } from "./config/env.js";
 import { setupSwagger } from "./config/swagger.js";
-import { errorHandler } from "./utils/auth.js";
-import apiRoutes from "./routes/index.js";
+import apiRoutes from "./routes.js";
+import { errorHandler } from "./shared/errors.js";
 
 export function createApp() {
   const app = express();
+  const allowedOrigins = getCorsOrigins();
 
   setupSwagger(app);
 
@@ -19,7 +20,17 @@ export function createApp() {
   );
   app.use(
     cors({
-      origin: env.CORS_ORIGIN,
+      origin(origin, callback) {
+        // Same-origin / non-browser tools (curl, Swagger server-side) send no Origin
+        if (!origin) {
+          callback(null, true);
+          return;
+        }
+        if (allowedOrigins.includes(origin)) {
+          callback(null, origin);
+          return;
+        }
+        callback(null, false);      },
       credentials: true,
     }),
   );
