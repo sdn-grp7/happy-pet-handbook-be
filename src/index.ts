@@ -1,7 +1,7 @@
 import "dotenv/config";
 import { createApp } from "./app.js";
 import { connectDB } from "./config/db.js";
-import { env } from "./config/env.js";
+import { env, getPublicBaseUrl, getSwaggerDocsUrl } from "./config/env.js";
 
 async function main() {
   await connectDB();
@@ -9,8 +9,9 @@ async function main() {
   const app = createApp();
 
   app.listen(env.PORT, () => {
-    console.log(`Server running on http://localhost:${env.PORT}`);
-    console.log(`Swagger docs:  http://localhost:${env.PORT}/api/docs`);
+    const publicUrl = getPublicBaseUrl();
+    console.log(`Server running on ${publicUrl}`);
+    console.log(`Swagger docs:  ${getSwaggerDocsUrl()}`);
   });
 }
 

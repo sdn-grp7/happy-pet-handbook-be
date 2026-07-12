@@ -11,6 +11,10 @@ const envSchema = z.object({
   CLOUDINARY_CLOUD_NAME: z.string().optional().default(""),
   CLOUDINARY_API_KEY: z.string().optional().default(""),
   CLOUDINARY_API_SECRET: z.string().optional().default(""),
+  RENDER_EXTERNAL_URL: z.string().url().optional(),
+  PUBLIC_URL: z.string().url().optional(),
+  SWAGGER_USER: z.string().default("admin"),
+  SWAGGER_PASSWORD: z.string().default("ok"),
 });
 
 export type Env = z.infer<typeof envSchema>;
@@ -25,3 +29,14 @@ function loadEnv(): Env {
 }
 
 export const env = loadEnv();
+
+/** Public base URL — Render sets RENDER_EXTERNAL_URL automatically. */
+export function getPublicBaseUrl(): string {
+  const raw = env.RENDER_EXTERNAL_URL ?? env.PUBLIC_URL;
+  if (raw) return raw.replace(/\/$/, "");
+  return `http://localhost:${env.PORT}`;
+}
+
+export function getSwaggerDocsUrl(): string {
+  return `${getPublicBaseUrl()}/api/docs`;
+}
