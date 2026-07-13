@@ -12,7 +12,7 @@ import {
   resolveCurrentOwner,
   revertPetIfNoPending,
 } from "./service.js";
-import { sendAdoptionRequestToOwner } from "../../shared/mail/sendAdoptionRequest.js";
+import { sendAdoptionRequestToOwner, resolveAppBaseUrl } from "../../shared/mail/sendAdoptionRequest.js";
 
 function isObjectIdString(value: string) {
   return /^[a-f\d]{24}$/i.test(value);
@@ -95,6 +95,7 @@ export async function createRequest(req: Request, res: Response) {
   await pet.save();
 
   // Notify current owner by email (never fail the API response).
+  const appBaseUrl = resolveAppBaseUrl(req.get("origin") ?? req.get("referer"));
   void notifyOwnerOfAdoptionRequest({
     ownerId: owner?.userId,
     fallbackPostedById: pet.postedById,
@@ -102,6 +103,7 @@ export async function createRequest(req: Request, res: Response) {
     adopterName: adopter.name,
     petName: pet.name,
     message: body.message,
+    appBaseUrl,
   }).catch((err) => {
     console.error("[mail] adoption request notify failed:", err);
   });
@@ -116,6 +118,7 @@ async function notifyOwnerOfAdoptionRequest(input: {
   adopterName: string;
   petName: string;
   message?: string;
+  appBaseUrl?: string;
 }) {
   const candidateIds = [input.ownerId, input.fallbackPostedById].filter(
     (id): id is mongoose.Types.ObjectId => Boolean(id),
@@ -135,13 +138,21 @@ async function notifyOwnerOfAdoptionRequest(input: {
     return;
   }
 
-  console.log("[mail] sending adoption notify →", ownerUser.email, "pet:", input.petName);
+  console.log(
+    "[mail] sending adoption notify →",
+    ownerUser.email,
+    "pet:",
+    input.petName,
+    "return:",
+    input.appBaseUrl,
+  );
   const sent = await sendAdoptionRequestToOwner({
     to: ownerUser.email,
     ownerName: ownerUser.name || input.ownerName || "bạn",
     adopterName: input.adopterName,
     petName: input.petName,
     message: input.message,
+    appBaseUrl: input.appBaseUrl,
   });
   console.log("[mail] adoption notify result:", sent ? "sent" : "skipped (not configured)");
 }

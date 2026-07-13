@@ -11,10 +11,35 @@ function ensureClient() {
   return true;
 }
 
-function appBaseUrl() {
-  const configured = env.APP_URL?.trim();
-  if (configured) return configured.replace(/\/$/, "");
-  return getCorsOrigins()[0] ?? "http://localhost:5173";
+/** Prefer the FE site that made the request; only allowlisted origins. */
+export function resolveAppBaseUrl(requestOrigin?: string | null): string {
+  const allowed = new Set(getCorsOrigins());
+  const candidates = [requestOrigin, getCorsOrigins()[0], "http://localhost:5173"];
+
+  for (const raw of candidates) {
+    const base = normalizeOrigin(raw);
+    if (!base) continue;
+    if (allowed.size === 0 || allowed.has(base) || isLocalDevOrigin(base)) {
+      return base;
+    }
+  }
+
+  return "http://localhost:5173";
+}
+
+function normalizeOrigin(raw?: string | null): string | null {
+  if (!raw?.trim()) return null;
+  try {
+    const url = new URL(raw.trim());
+    if (url.protocol !== "http:" && url.protocol !== "https:") return null;
+    return `${url.protocol}//${url.host}`;
+  } catch {
+    return null;
+  }
+}
+
+function isLocalDevOrigin(origin: string) {
+  return /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(origin);
 }
 
 export type AdoptionRequestMailInput = {
@@ -23,6 +48,8 @@ export type AdoptionRequestMailInput = {
   adopterName: string;
   petName: string;
   message?: string;
+  /** Frontend origin that triggered the request (e.g. https://paws-path.netlify.app). */
+  appBaseUrl?: string;
 };
 
 /** Fire-and-forget safe: returns false if mail is not configured. */
@@ -32,7 +59,7 @@ export async function sendAdoptionRequestToOwner(input: AdoptionRequestMailInput
     return false;
   }
 
-  const inboxUrl = `${appBaseUrl()}/adoption-requests`;
+  const inboxUrl = `${resolveAppBaseUrl(input.appBaseUrl)}/adoption-requests`;
   const greeting = input.ownerName?.trim() || "bạn";
   const note = input.message?.trim()
     ? `\n\nLời nhắn từ người xin nhận nuôi:\n"${input.message.trim()}"\n`
