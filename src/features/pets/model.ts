@@ -72,6 +72,8 @@ const petSchema = new Schema(
       enum: ["available", "pending", "adopted"],
       default: "available",
     },
+    /** Set when status is adopted — the system user who took the pet home. */
+    adoptedBy: { type: userRefSchema },
     vaccinations: { type: [vaccinationSchema], default: [] },
     owners: { type: [ownerSchema], default: [] },
     zaloPhone: { type: String, trim: true },

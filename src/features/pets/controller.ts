@@ -25,6 +25,41 @@ async function resolvePoster(userId: string) {
   return user;
 }
 
+async function resolveAdopterRef(userId: string) {
+  const user = await User.findById(userId).lean();
+  if (!user) throw new AppError(404, "Adopter user not found");
+  return {
+    userId: user._id as mongoose.Types.ObjectId,
+    name: user.name,
+    avatar: user.avatar,
+  };
+}
+
+/** Keep ownership history in sync when an adopter is assigned. */
+function ensureAdopterOwnerPeriod(
+  pet: InstanceType<typeof Pet>,
+  adopter: { userId: mongoose.Types.ObjectId; name: string; avatar?: string | null },
+) {
+  const alreadyOpen = pet.owners.some(
+    (o) => o.user.userId.toString() === adopter.userId.toString() && !o.to,
+  );
+  if (alreadyOpen) return;
+
+  for (const o of pet.owners) {
+    if (!o.to) o.to = new Date().toISOString().slice(0, 10);
+  }
+
+  pet.owners.push({
+    user: {
+      userId: adopter.userId,
+      name: adopter.name,
+      avatar: adopter.avatar ?? undefined,
+    },
+    from: new Date().toISOString().slice(0, 10),
+    checkIns: [],
+  });
+}
+
 export async function listPets(req: Request, res: Response) {
   const { status, species } = req.query as { status?: string; species?: string };
   const filter: Record<string, string> = {};
@@ -61,12 +96,31 @@ export async function createPet(req: Request, res: Response) {
 
   const poster = await resolvePoster(req.user!.userId);
 
+  const { adoptedByUserId, ...petFields } = body;
+  const adoptedBy =
+    body.status === "adopted" && adoptedByUserId
+      ? await resolveAdopterRef(adoptedByUserId)
+      : undefined;
+
   const pet = await Pet.create({
-    ...body,
+    ...petFields,
+    ...(adoptedBy ? { adoptedBy } : {}),
     postedById: poster._id,
     postedByName: poster.name,
     vaccinations: [],
-    owners: [],
+    owners: adoptedBy
+      ? [
+          {
+            user: {
+              userId: adoptedBy.userId,
+              name: adoptedBy.name,
+              avatar: adoptedBy.avatar ?? undefined,
+            },
+            from: new Date().toISOString().slice(0, 10),
+            checkIns: [],
+          },
+        ]
+      : [],
   });
 
   res.status(201).json({ pet: toPublicPet(pet.toObject() as PetLean) });
@@ -97,6 +151,23 @@ export async function updatePet(req: Request, res: Response) {
   if (body.status != null) pet.status = body.status;
   if (body.zaloPhone !== undefined) pet.zaloPhone = body.zaloPhone;
   if (body.pickup !== undefined) pet.pickup = body.pickup;
+
+  if (body.adoptedByUserId !== undefined) {
+    if (body.adoptedByUserId === null) {
+      pet.set("adoptedBy", undefined);
+    } else {
+      const adopter = await resolveAdopterRef(body.adoptedByUserId);
+      pet.adoptedBy = adopter;
+      if (body.status == null) pet.status = "adopted";
+      ensureAdopterOwnerPeriod(pet, adopter);
+    }
+  }
+
+  if (pet.status !== "adopted") {
+    pet.set("adoptedBy", undefined);
+  } else if (!pet.adoptedBy) {
+    throw new AppError(400, "adoptedByUserId is required when status is adopted");
+  }
 
   await pet.save();
   res.json({ pet: toPublicPet(pet.toObject() as PetLean) });

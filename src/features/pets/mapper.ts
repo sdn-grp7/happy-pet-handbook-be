@@ -51,6 +51,7 @@ export type PetLean = {
   notes?: string | null;
   images?: string[];
   status: "available" | "pending" | "adopted";
+  adoptedBy?: UserRefDoc | null;
   vaccinations?: VaccinationDoc[];
   owners?: OwnerDoc[];
   zaloPhone?: string | null;
@@ -89,6 +90,7 @@ export function toPublicPet(doc: PetLean) {
     ...(doc.notes ? { notes: doc.notes } : {}),
     images: doc.images ?? [],
     status: doc.status,
+    ...(doc.adoptedBy ? { adoptedBy: toUserRef(doc.adoptedBy) } : {}),
     vaccinations: (doc.vaccinations ?? []).map((v) => ({
       name: v.name,
       date: v.date,
