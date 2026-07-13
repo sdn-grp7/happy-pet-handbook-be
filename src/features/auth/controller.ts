@@ -33,7 +33,7 @@ function authResponse(user: Parameters<typeof toPublicUser>[0]) {
   const token = signToken({
     userId: user._id.toString(),
     email: user.email,
-    role: user.role as "user",
+    role: user.role as "user" | "admin",
   });
   return { token, user: toPublicUser(user) };
 }

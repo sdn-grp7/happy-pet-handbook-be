@@ -8,7 +8,7 @@ const userSchema = new Schema(
     password: { type: String, required: false, select: false },
     googleId: { type: String, unique: true, sparse: true },
     avatar: { type: String },
-    role: { type: String, enum: ["user"] satisfies UserRole[], default: "user" },
+    role: { type: String, enum: ["user", "admin"] satisfies UserRole[], default: "user" },
   },
   { timestamps: true },
 );
