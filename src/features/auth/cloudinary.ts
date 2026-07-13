@@ -35,6 +35,36 @@ export async function uploadImageFromUrl(
   return result.secure_url;
 }
 
+/** Upload an image buffer (authenticated server-side — no unsigned preset needed). */
+export async function uploadImageBuffer(
+  buffer: Buffer,
+  filename: string,
+  folder = "pawpath/care",
+): Promise<string> {
+  ensureCloudinary();
+  const result = await new Promise<{ secure_url?: string }>((resolve, reject) => {
+    const stream = cloudinary.uploader.upload_stream(
+      {
+        folder,
+        resource_type: "image",
+        filename_override: filename,
+        use_filename: true,
+        unique_filename: true,
+      },
+      (err, res) => {
+        if (err || !res) reject(err ?? new Error("Empty Cloudinary response"));
+        else resolve(res);
+      },
+    );
+    stream.end(buffer);
+  });
+
+  if (!result.secure_url) {
+    throw new AppError(502, "Failed to upload image to Cloudinary");
+  }
+  return result.secure_url;
+}
+
 export type UploadedPdf = {
   url: string;
   publicId: string;

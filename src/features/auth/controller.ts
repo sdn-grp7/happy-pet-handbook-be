@@ -3,6 +3,7 @@ import { OAuth2Client } from "google-auth-library";
 import type { Request, Response } from "express";
 import { env } from "../../config/env.js";
 import { AppError } from "../../shared/errors.js";
+import { getTrustSummary } from "../reputation/aggregate.js";
 import { uploadImageFromUrl } from "./cloudinary.js";
 import { signToken } from "./jwt.js";
 import { User } from "./model.js";
@@ -189,6 +190,8 @@ export async function getPublicProfile(req: Request, res: Response) {
   const user = await User.findById(id).lean();
   if (!user) throw new AppError(404, "User not found");
 
+  const trust = await getTrustSummary(id);
+
   res.json({
     user: {
       id: user._id.toString(),
@@ -196,6 +199,8 @@ export async function getPublicProfile(req: Request, res: Response) {
       role: user.role,
       avatar: user.avatar ?? undefined,
       createdAt: user.createdAt?.toISOString?.() ?? undefined,
+      trustScore: trust.trustScore,
+      reviewCount: trust.reviewCount,
     },
   });
 }

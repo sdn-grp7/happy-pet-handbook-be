@@ -1,3 +1,4 @@
+import { formatAgeLabel, parseAgeToMonths } from "./age.js";
 import mongoose from "mongoose";
 
 type ObjectIdLike = { toString(): string };
@@ -27,7 +28,7 @@ type CheckInDoc = {
   uploadedBy: UserRefDoc;
 };
 
-type OwnerDoc = {
+export type OwnerDoc = {
   _id?: ObjectIdLike;
   user: UserRefDoc;
   from: string;
@@ -43,6 +44,7 @@ export type PetLean = {
   species: "dog" | "cat";
   breed: string;
   gender: "male" | "female" | "unknown";
+  ageMonths?: number | null;
   age: string;
   weightKg?: number | null;
   healthStatus: string;
@@ -74,7 +76,8 @@ function toUserRef(ref: UserRefDoc) {
   };
 }
 
-export function toPublicPet(doc: PetLean) {
+export function toPublicPet(doc: PetLean, owners: OwnerDoc[] = []) {
+  const ageMonths = doc.ageMonths ?? parseAgeToMonths(doc.age) ?? 12;
   return {
     id: doc._id.toString(),
     code: doc.code,
@@ -82,7 +85,8 @@ export function toPublicPet(doc: PetLean) {
     species: doc.species,
     breed: doc.breed,
     gender: doc.gender,
-    age: doc.age,
+    ageMonths,
+    age: formatAgeLabel(ageMonths),
     ...(doc.weightKg != null ? { weightKg: doc.weightKg } : {}),
     healthStatus: doc.healthStatus,
     ...(doc.intakeYear != null ? { intakeYear: doc.intakeYear } : {}),
@@ -100,19 +104,26 @@ export function toPublicPet(doc: PetLean) {
       uploadedBy: toUserRef(v.uploadedBy),
       ...(v.uploadedAt ? { uploadedAt: v.uploadedAt.toISOString() } : {}),
     })),
-    owners: (doc.owners ?? []).map((o) => ({
+    owners: owners.map((o) => ({
       id: o._id?.toString() ?? "",
       user: toUserRef(o.user),
       from: o.from,
       ...(o.to ? { to: o.to } : {}),
       ...(o.note ? { note: o.note } : {}),
-      checkIns: (o.checkIns ?? []).map((c) => ({
-        id: c._id?.toString() ?? "",
-        photoUrl: c.photoUrl,
-        caption: c.caption,
-        ...(c.date ? { date: c.date } : {}),
-        uploadedBy: toUserRef(c.uploadedBy),
-      })),
+      checkIns: (o.checkIns ?? [])
+        .map((c) => ({
+          id: c._id?.toString() ?? "",
+          photoUrl: c.photoUrl,
+          caption: c.caption,
+          ...(c.date ? { date: c.date } : {}),
+          uploadedBy: toUserRef(c.uploadedBy),
+        }))
+        .sort((a, b) => {
+          if (!a.date && !b.date) return 0;
+          if (!a.date) return 1;
+          if (!b.date) return -1;
+          return b.date.localeCompare(a.date);
+        }),
     })),
     ...(doc.zaloPhone ? { zaloPhone: doc.zaloPhone } : {}),
     postedById: doc.postedById.toString(),
