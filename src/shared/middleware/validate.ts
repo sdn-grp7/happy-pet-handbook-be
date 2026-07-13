@@ -20,7 +20,7 @@ export function validate<T>(schema: ZodSchema<T>, target: RequestTarget = "body"
         enumerable: true,
       });
     } else {
-      req[target] = result.data as typeof req[typeof target];
+      req[target] = result.data as (typeof req)[typeof target];
     }
     next();
   };

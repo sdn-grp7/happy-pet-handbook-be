@@ -17,12 +17,7 @@ router.get("/", validate(listPetsQuerySchema, "query"), petsController.listPets)
 router.get("/pickups", petsController.listPickups);
 router.get("/:id", validate(petIdParamsSchema, "params"), petsController.getPet);
 
-router.post(
-  "/",
-  requireAuth,
-  validate(createPetBodySchema),
-  petsController.createPet,
-);
+router.post("/", requireAuth, validate(createPetBodySchema), petsController.createPet);
 
 router.patch(
   "/:id",

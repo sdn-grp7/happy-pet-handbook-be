@@ -28,11 +28,7 @@ async function findPetByIdOrCode(idOrCode: string) {
   return Pet.findOne({ code: idOrCode });
 }
 
-async function assertCanCareForPet(
-  pet: InstanceType<typeof Pet>,
-  userId: string,
-  role: string,
-) {
+async function assertCanCareForPet(pet: InstanceType<typeof Pet>, userId: string, role: string) {
   if (role === "admin") return;
   const owner = await resolveCurrentOwner(pet);
   if (!owner || owner.userId.toString() !== userId) {
@@ -65,21 +61,21 @@ async function toPetResponse(pet: InstanceType<typeof Pet> | PetLean) {
 async function toPetListResponse(pets: PetLean[]) {
   const ids = pets.map((p) => p._id as mongoose.Types.ObjectId);
   const byPet = await listOwnershipByPetIds(ids);
-  return pets.map((p) =>
-    toPublicPet(p, (byPet.get(p._id.toString()) ?? []) as OwnerDoc[]),
-  );
+  return pets.map((p) => toPublicPet(p, (byPet.get(p._id.toString()) ?? []) as OwnerDoc[]));
 }
 
 export async function listPets(req: Request, res: Response) {
-  const { status, species, adoptedBy } = req.query as {
+  const { status, species, adoptedBy, postedBy } = req.query as {
     status?: string;
     species?: string;
     adoptedBy?: string;
+    postedBy?: string;
   };
   const filter: Record<string, unknown> = {};
   if (status) filter.status = status;
   if (species) filter.species = species;
   if (adoptedBy) filter["adoptedBy.userId"] = new mongoose.Types.ObjectId(adoptedBy);
+  if (postedBy) filter.postedById = new mongoose.Types.ObjectId(postedBy);
 
   const pets = await Pet.find(filter).sort({ createdAt: -1 }).lean();
   res.json({ pets: await toPetListResponse(pets as PetLean[]) });
@@ -121,9 +117,7 @@ export async function createPet(req: Request, res: Response) {
   if (existing) throw new AppError(409, "Pet code already exists");
 
   const adoptedBy =
-    status === "adopted" && adoptedByUserId
-      ? await resolveAdopterRef(adoptedByUserId)
-      : undefined;
+    status === "adopted" && adoptedByUserId ? await resolveAdopterRef(adoptedByUserId) : undefined;
 
   const { adoptedByUserId: _omit, code: _code, status: _status, ...petFields } = body;
 
