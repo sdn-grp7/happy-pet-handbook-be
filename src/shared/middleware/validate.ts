@@ -11,7 +11,17 @@ export function validate<T>(schema: ZodSchema<T>, target: RequestTarget = "body"
       const message = result.error.errors.map((e) => e.message).join(", ");
       return next(new AppError(400, message));
     }
-    req[target] = result.data;
+    // Express 5: req.query is a getter — plain assignment throws.
+    if (target === "query") {
+      Object.defineProperty(req, "query", {
+        value: result.data,
+        writable: true,
+        configurable: true,
+        enumerable: true,
+      });
+    } else {
+      req[target] = result.data as typeof req[typeof target];
+    }
     next();
   };
 }

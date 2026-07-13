@@ -34,3 +34,85 @@ export async function uploadImageFromUrl(
   }
   return result.secure_url;
 }
+
+export type UploadedPdf = {
+  url: string;
+  publicId: string;
+};
+
+/**
+ * Upload a PDF as an image resource (not raw).
+ * Cloudinary often returns 401 for public raw PDF delivery; image/upload URLs work with pdf.js.
+ */
+export async function uploadPdfBuffer(
+  buffer: Buffer,
+  filename: string,
+  folder = "pawpath/guides",
+): Promise<UploadedPdf> {
+  ensureCloudinary();
+  const baseName = filename.replace(/\.pdf$/i, "").replace(/[^a-zA-Z0-9_-]/g, "-");
+
+  const result = await new Promise<{
+    secure_url?: string;
+    public_id?: string;
+  }>((resolve, reject) => {
+    const stream = cloudinary.uploader.upload_stream(
+      {
+        folder,
+        public_id: `${baseName}-${Date.now()}`,
+        resource_type: "image",
+        format: "pdf",
+        type: "upload",
+        access_mode: "public",
+        overwrite: true,
+      },
+      (err, res) => {
+        if (err || !res) reject(err ?? new Error("Empty Cloudinary response"));
+        else resolve(res);
+      },
+    );
+    stream.end(buffer);
+  });
+
+  if (!result.secure_url || !result.public_id) {
+    throw new AppError(502, "Failed to upload PDF to Cloudinary");
+  }
+  return { url: result.secure_url, publicId: result.public_id };
+}
+
+/** Upload a remote PDF URL to Cloudinary (image resource for public delivery). */
+export async function uploadPdfFromUrl(
+  pdfUrl: string,
+  publicIdBase: string,
+  folder = "pawpath/guides",
+): Promise<UploadedPdf> {
+  ensureCloudinary();
+  const result = await cloudinary.uploader.upload(pdfUrl, {
+    folder,
+    public_id: publicIdBase,
+    resource_type: "image",
+    format: "pdf",
+    type: "upload",
+    access_mode: "public",
+    overwrite: true,
+  });
+  if (!result.secure_url || !result.public_id) {
+    throw new AppError(502, "Failed to upload PDF to Cloudinary");
+  }
+  return { url: result.secure_url, publicId: result.public_id };
+}
+
+export async function destroyGuideAsset(publicId: string) {
+  if (!publicId) return;
+  ensureCloudinary();
+  try {
+    // Prefer image (current); also try raw for assets uploaded before the fix.
+    await cloudinary.uploader.destroy(publicId, { resource_type: "image" });
+  } catch {
+    try {
+      await cloudinary.uploader.destroy(publicId, { resource_type: "raw" });
+    } catch (err) {
+      console.warn("Cloudinary destroy failed:", publicId, err);
+    }
+  }
+}

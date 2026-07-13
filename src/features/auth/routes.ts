@@ -8,6 +8,7 @@ import {
   registerSchema,
   updateMeSchema,
   changePasswordSchema,
+  userIdParamsSchema,
 } from "./schemas.js";
 
 const router = Router();
@@ -22,6 +23,11 @@ router.post(
   requireAuth,
   validate(changePasswordSchema),
   authController.changePassword,
+);
+router.get(
+  "/users/:id",
+  validate(userIdParamsSchema, "params"),
+  authController.getPublicProfile,
 );
 
 export default router;
