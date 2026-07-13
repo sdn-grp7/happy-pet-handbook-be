@@ -17,6 +17,11 @@ const envSchema = z.object({
   CLOUDINARY_API_SECRET: z.string().optional().default(""),
   RENDER_EXTERNAL_URL: z.string().url().optional(),
   PUBLIC_URL: z.string().url().optional(),
+  /** Frontend base URL for links in emails (falls back to first CORS_ORIGIN). */
+  APP_URL: z.string().optional().default(""),
+  SENDGRID_API_KEY: z.string().optional().default(""),
+  /** Must match a verified Single Sender (or authenticated domain) in SendGrid. */
+  SENDGRID_FROM_EMAIL: z.string().optional().default(""),
   SWAGGER_USER: z.string().default("admin"),
   SWAGGER_PASSWORD: z.string().default("ok"),
 });

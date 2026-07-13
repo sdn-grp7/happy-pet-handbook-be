@@ -12,6 +12,7 @@ import {
   resolveCurrentOwner,
   revertPetIfNoPending,
 } from "./service.js";
+import { sendAdoptionRequestToOwner } from "../../shared/mail/sendAdoptionRequest.js";
 
 function isObjectIdString(value: string) {
   return /^[a-f\d]{24}$/i.test(value);
@@ -93,7 +94,56 @@ export async function createRequest(req: Request, res: Response) {
   pet.status = "pending";
   await pet.save();
 
+  // Notify current owner by email (never fail the API response).
+  void notifyOwnerOfAdoptionRequest({
+    ownerId: owner?.userId,
+    fallbackPostedById: pet.postedById,
+    ownerName: owner?.name,
+    adopterName: adopter.name,
+    petName: pet.name,
+    message: body.message,
+  }).catch((err) => {
+    console.error("[mail] adoption request notify failed:", err);
+  });
+
   res.status(201).json({ request: toPublicAdoptionRequest(request) });
+}
+
+async function notifyOwnerOfAdoptionRequest(input: {
+  ownerId?: mongoose.Types.ObjectId | null;
+  fallbackPostedById?: mongoose.Types.ObjectId | null;
+  ownerName?: string;
+  adopterName: string;
+  petName: string;
+  message?: string;
+}) {
+  const candidateIds = [input.ownerId, input.fallbackPostedById].filter(
+    (id): id is mongoose.Types.ObjectId => Boolean(id),
+  );
+
+  let ownerUser: { email?: string; name?: string } | null = null;
+  for (const id of candidateIds) {
+    ownerUser = await User.findById(id).select("email name").lean();
+    if (ownerUser?.email) break;
+  }
+
+  if (!ownerUser?.email) {
+    console.warn("[mail] skip notify — no owner email", {
+      ownerId: input.ownerId?.toString(),
+      postedById: input.fallbackPostedById?.toString(),
+    });
+    return;
+  }
+
+  console.log("[mail] sending adoption notify →", ownerUser.email, "pet:", input.petName);
+  const sent = await sendAdoptionRequestToOwner({
+    to: ownerUser.email,
+    ownerName: ownerUser.name || input.ownerName || "bạn",
+    adopterName: input.adopterName,
+    petName: input.petName,
+    message: input.message,
+  });
+  console.log("[mail] adoption notify result:", sent ? "sent" : "skipped (not configured)");
 }
 
 export async function confirmRequest(req: Request, res: Response) {
