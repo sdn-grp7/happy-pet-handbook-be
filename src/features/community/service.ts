@@ -77,78 +77,9 @@ function authorStages(): PipelineStage[] {
       },
     },
     {
-      $lookup: {
-        from: "pets",
-        let: {
-          authorId: "$userId",
-          authorIdString: { $toString: "$userId" },
-        },
-        pipeline: [
-          {
-            $match: {
-              $expr: {
-                $or: [
-                  { $eq: ["$userId", "$$authorId"] },
-                  { $eq: [{ $toString: "$userId" }, "$$authorIdString"] },
-                  { $eq: ["$adoptedBy.user.userId", "$$authorId"] },
-                  { $eq: [{ $toString: "$adoptedBy.user.userId" }, "$$authorIdString"] },
-                  { $in: ["$$authorId", { $ifNull: ["$owners.user.userId", []] }] },
-                  {
-                    $in: [
-                      "$$authorIdString",
-                      {
-                        $map: {
-                          input: { $ifNull: ["$owners.user.userId", []] },
-                          as: "ownerId",
-                          in: { $toString: "$$ownerId" },
-                        },
-                      },
-                    ],
-                  },
-                ],
-              },
-            },
-          },
-          {
-            $sort: {
-              createdAt: 1,
-              _id: 1,
-            },
-          },
-          {
-            $limit: 1,
-          },
-          {
-            $project: {
-              _id: 1,
-              name: 1,
-            },
-          },
-        ],
-        as: "authorPets",
-      },
-    },
-    {
-      $addFields: {
-        firstAuthorPetName: {
-          $arrayElemAt: ["$authorPets.name", 0],
-        },
-      },
-    },
-    {
       $addFields: {
         authorDisplayName: {
-          $cond: [
-            {
-              $gt: [{ $size: "$authorPets" }, 0],
-            },
-            {
-              $concat: ["$author.name", " & ", "$firstAuthorPetName"],
-            },
-            {
-              $ifNull: ["$author.name", "Unknown User"],
-            },
-          ],
+          $ifNull: ["$author.name", "Thành viên"],
         },
       },
     },
@@ -492,18 +423,15 @@ export async function unlikePost(postId: string, userId: string) {
   });
 
   if (result.deletedCount > 0) {
-    await Post.collection.updateOne(
-      { _id: postObjectId },
-      [
-        {
-          $set: {
-            likesCount: {
-              $max: [0, { $subtract: [{ $ifNull: ["$likesCount", 0] }, 1] }],
-            },
+    await Post.collection.updateOne({ _id: postObjectId }, [
+      {
+        $set: {
+          likesCount: {
+            $max: [0, { $subtract: [{ $ifNull: ["$likesCount", 0] }, 1] }],
           },
         },
-      ],
-    );
+      },
+    ]);
   }
 
   const post = await fetchPostById(postId, userId);

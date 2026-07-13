@@ -5,9 +5,7 @@ export const speciesSchema = z.enum(["dog", "cat"]);
 export const genderSchema = z.enum(["male", "female", "unknown"]);
 export const statusSchema = z.enum(["available", "pending", "adopted"]);
 export const breedSchema = z.enum(PET_BREEDS as unknown as [PetBreed, ...PetBreed[]]);
-export const objectIdStringSchema = z
-  .string()
-  .regex(/^[a-f\d]{24}$/i, "Invalid user id");
+export const objectIdStringSchema = z.string().regex(/^[a-f\d]{24}$/i, "Invalid user id");
 
 export const listPetsQuerySchema = z.object({
   status: statusSchema.optional(),
@@ -15,6 +13,8 @@ export const listPetsQuerySchema = z.object({
   breed: breedSchema.optional(),
   /** Filter pets currently adopted by this user id. */
   adoptedBy: objectIdStringSchema.optional(),
+  /** Filter pets listed/posted by this user id. */
+  postedBy: objectIdStringSchema.optional(),
 });
 
 export const petIdParamsSchema = z.object({
@@ -111,11 +111,7 @@ export const updatePetBodySchema = z
         path: ["adoptedByUserId"],
       });
     }
-    if (
-      data.status != null &&
-      data.status !== "adopted" &&
-      data.adoptedByUserId != null
-    ) {
+    if (data.status != null && data.status !== "adopted" && data.adoptedByUserId != null) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         message: "adoptedByUserId is only allowed when status is adopted",

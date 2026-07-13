@@ -12,6 +12,8 @@
     "seed:trust": "tsx scripts/seed-trust-ratings.ts",
     "seed:checkins": "tsx scripts/seed-checkins.ts",
     "seed:available-ownership": "tsx scripts/seed-available-ownership.ts",
+    "fix:forum-posts": "tsx scripts/fix-forum-posts.ts",
+    "fix:forum-comments": "tsx scripts/fix-forum-comments.ts",
     "migrate:ownership": "tsx scripts/migrate-ownership-history.ts",
     "migrate:breeds": "tsx scripts/migrate-breeds.ts",
     "migrate:age-months": "tsx scripts/migrate-age-months.ts",

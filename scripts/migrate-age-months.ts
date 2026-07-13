@@ -24,18 +24,14 @@ async function main() {
   let updated = 0;
 
   for (const pet of pets) {
-    const hasStoredMonths =
-      typeof pet.ageMonths === "number" && Number.isFinite(pet.ageMonths);
+    const hasStoredMonths = typeof pet.ageMonths === "number" && Number.isFinite(pet.ageMonths);
     const fromText = parseAgeToMonths(pet.age);
-    const nextMonths = hasStoredMonths
-      ? Math.round(pet.ageMonths as number)
-      : (fromText ?? 12);
+    const nextMonths = hasStoredMonths ? Math.round(pet.ageMonths as number) : (fromText ?? 12);
 
     // Only write when missing or when stored value is the bogus schema default
     // while text clearly parses to something else.
     const shouldFix =
-      !hasStoredMonths ||
-      (pet.ageMonths === 12 && fromText != null && fromText !== 12);
+      !hasStoredMonths || (pet.ageMonths === 12 && fromText != null && fromText !== 12);
 
     if (!shouldFix && hasStoredMonths) continue;
 

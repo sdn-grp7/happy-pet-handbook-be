@@ -72,9 +72,7 @@ export async function loadPetOwnershipView(
   petId: { toString(): string },
   adoptedBy?: OwnerUser | null,
 ): Promise<PetOwnershipView> {
-  const periods = await OwnershipHistory.find({ petId })
-    .sort({ from: 1, createdAt: 1 })
-    .lean();
+  const periods = await OwnershipHistory.find({ petId }).sort({ from: 1, createdAt: 1 }).lean();
   return {
     periods: periods.map((p) => ({
       user: p.user,

@@ -209,10 +209,7 @@ export async function upsertRating(req: Request, res: Response) {
 
   const view = await loadPetOwnershipView(pet._id, pet.adoptedBy ?? null);
   if (!canPriorOwnerRateSuccessor(view, reviewerId, body.revieweeId)) {
-    throw new AppError(
-      403,
-      "Only a prior owner of this pet can rate the new owner",
-    );
+    throw new AppError(403, "Only a prior owner of this pet can rate the new owner");
   }
 
   const reviewee = await User.findById(body.revieweeId).lean();

@@ -16,7 +16,12 @@ import {
 const router = Router();
 
 router.get("/feed", optionalAuth, validate(feedQuerySchema, "query"), communityController.getFeed);
-router.post("/", requireAuth, validate(createPostBodySchema), communityController.createPostHandler);
+router.post(
+  "/",
+  requireAuth,
+  validate(createPostBodySchema),
+  communityController.createPostHandler,
+);
 
 router.get(
   "/:postId/comments",
@@ -69,7 +74,12 @@ router.post(
   communityController.togglePostLikeHandler,
 );
 
-router.get("/:postId", optionalAuth, validate(postIdParamsSchema, "params"), communityController.getPost);
+router.get(
+  "/:postId",
+  optionalAuth,
+  validate(postIdParamsSchema, "params"),
+  communityController.getPost,
+);
 router.patch(
   "/:postId",
   requireAuth,

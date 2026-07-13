@@ -7,6 +7,7 @@ const ALLOWED_FOLDERS = new Set([
   "pawpath/care",
   "pawpath/check-ins",
   "pawpath/vaccines",
+  "pawpath/forum",
 ]);
 
 export async function uploadImage(req: Request, res: Response) {
