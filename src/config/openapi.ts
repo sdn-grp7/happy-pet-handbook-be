@@ -32,6 +32,7 @@ export function getOpenApiSpec() {
       { name: "Health", description: "Server health checks" },
       { name: "Auth", description: "Registration and login" },
       { name: "Contact", description: "Contact form submissions" },
+      { name: "Pets", description: "Pet listings, vaccines, and check-ins" },
     ],
     components: {
       securitySchemes: {
@@ -379,6 +380,80 @@ export function getOpenApiSpec() {
               description: "Validation error",
               content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } },
             },
+          },
+        },
+      },
+      "/api/pets": {
+        get: {
+          tags: ["Pets"],
+          summary: "List pets",
+          parameters: [
+            {
+              name: "status",
+              in: "query",
+              schema: { type: "string", enum: ["available", "pending", "adopted"] },
+            },
+            {
+              name: "species",
+              in: "query",
+              schema: { type: "string", enum: ["dog", "cat"] },
+            },
+          ],
+          responses: {
+            "200": { description: "Pet list" },
+          },
+        },
+        post: {
+          tags: ["Pets"],
+          summary: "Create pet (admin)",
+          security: [{ bearerAuth: [] }],
+          responses: {
+            "201": { description: "Created" },
+            "401": { description: "Unauthorized" },
+            "403": { description: "Admin only" },
+          },
+        },
+      },
+      "/api/pets/pickups": {
+        get: {
+          tags: ["Pets"],
+          summary: "Pets with pickup coordinates (map)",
+          responses: { "200": { description: "Pet list with pickup" } },
+        },
+      },
+      "/api/pets/{id}": {
+        get: {
+          tags: ["Pets"],
+          summary: "Get pet by Mongo id or listing code",
+          parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }],
+          responses: {
+            "200": { description: "Pet detail" },
+            "404": { description: "Not found" },
+          },
+        },
+      },
+      "/api/pets/{id}/check-ins": {
+        post: {
+          tags: ["Pets"],
+          summary: "Add check-in photo (authenticated user)",
+          security: [{ bearerAuth: [] }],
+          parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }],
+          responses: {
+            "201": { description: "Check-in added" },
+            "401": { description: "Unauthorized" },
+          },
+        },
+      },
+      "/api/pets/{id}/vaccinations": {
+        post: {
+          tags: ["Pets"],
+          summary: "Add vaccination entry (admin)",
+          security: [{ bearerAuth: [] }],
+          parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }],
+          responses: {
+            "201": { description: "Vaccination added" },
+            "401": { description: "Unauthorized" },
+            "403": { description: "Admin only" },
           },
         },
       },

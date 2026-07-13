@@ -30,7 +30,16 @@ export function createApp() {
           callback(null, origin);
           return;
         }
-        callback(null, false);      },
+        // Local Vite / preview ports during development
+        if (
+          env.NODE_ENV === "development" &&
+          /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)
+        ) {
+          callback(null, origin);
+          return;
+        }
+        callback(new Error(`CORS blocked for origin: ${origin}`));
+      },
       credentials: true,
     }),
   );
