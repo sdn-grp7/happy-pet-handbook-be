@@ -116,3 +116,34 @@ export async function destroyGuideAsset(publicId: string) {
     }
   }
 }
+
+/** Build a short-lived authenticated download URL for a guide PDF. */
+export function guidePdfPrivateDownloadUrl(publicId: string): string {
+  ensureCloudinary();
+  return cloudinary.utils.private_download_url(publicId, "pdf", {
+    resource_type: "image",
+    type: "upload",
+    attachment: false,
+    expires_at: Math.floor(Date.now() / 1000) + 15 * 60,
+  });
+}
+
+/**
+ * Fetch guide PDF bytes from Cloudinary.
+ * Public CDN delivery of PDFs often returns 401 on free accounts — use private download API instead.
+ */
+export async function fetchGuidePdfFromCloudinary(publicId: string): Promise<{
+  body: ReadableStream<Uint8Array> | null;
+  contentLength: string | null;
+}> {
+  ensureCloudinary();
+  const url = guidePdfPrivateDownloadUrl(publicId);
+  const res = await fetch(url, { redirect: "follow" });
+  if (!res.ok) {
+    throw new AppError(502, `Failed to fetch guide PDF from Cloudinary (${res.status})`);
+  }
+  return {
+    body: res.body,
+    contentLength: res.headers.get("content-length"),
+  };
+}
