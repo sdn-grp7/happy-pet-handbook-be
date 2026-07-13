@@ -180,3 +180,22 @@ export async function changePassword(req: Request, res: Response) {
 
   res.json({ message: "Password updated", user: toPublicUser(user) });
 }
+
+/** Public profile card — no email / password fields. */
+export async function getPublicProfile(req: Request, res: Response) {
+  const { id } = req.params as { id: string };
+  if (!/^[a-f\d]{24}$/i.test(id)) throw new AppError(404, "User not found");
+
+  const user = await User.findById(id).lean();
+  if (!user) throw new AppError(404, "User not found");
+
+  res.json({
+    user: {
+      id: user._id.toString(),
+      name: user.name,
+      role: user.role,
+      avatar: user.avatar ?? undefined,
+      createdAt: user.createdAt?.toISOString?.() ?? undefined,
+    },
+  });
+}
