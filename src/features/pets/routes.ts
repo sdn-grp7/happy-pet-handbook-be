@@ -20,7 +20,6 @@ router.get("/:id", validate(petIdParamsSchema, "params"), petsController.getPet)
 router.post(
   "/",
   requireAuth,
-  requireAdmin,
   validate(createPetBodySchema),
   petsController.createPet,
 );
@@ -45,7 +44,6 @@ router.delete(
 router.post(
   "/:id/vaccinations",
   requireAuth,
-  requireAdmin,
   validate(petIdParamsSchema, "params"),
   validate(addVaccinationBodySchema),
   petsController.addVaccination,

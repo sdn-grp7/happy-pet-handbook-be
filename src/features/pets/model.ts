@@ -1,4 +1,5 @@
 import mongoose, { Schema, type InferSchemaType } from "mongoose";
+import { PET_BREEDS } from "./breeds.js";
 
 const userRefSchema = new Schema(
   {
@@ -58,8 +59,11 @@ const petSchema = new Schema(
     code: { type: String, required: true, unique: true, trim: true },
     name: { type: String, required: true, trim: true },
     species: { type: String, enum: ["dog", "cat"], required: true },
-    breed: { type: String, required: true, trim: true },
+    breed: { type: String, enum: [...PET_BREEDS], required: true, trim: true },
     gender: { type: String, enum: ["male", "female", "unknown"], required: true },
+    /** Age in whole months — source of truth for filtering. */
+    ageMonths: { type: Number, required: true, min: 0, max: 360 },
+    /** Display label (may be free-text legacy or derived from ageMonths). */
     age: { type: String, required: true, trim: true },
     weightKg: { type: Number },
     healthStatus: { type: String, required: true, trim: true },
@@ -75,6 +79,7 @@ const petSchema = new Schema(
     /** Set when status is adopted — the system user who took the pet home. */
     adoptedBy: { type: userRefSchema },
     vaccinations: { type: [vaccinationSchema], default: [] },
+    /** @deprecated Ownership history lives in OwnershipHistory collection. */
     owners: { type: [ownerSchema], default: [] },
     zaloPhone: { type: String, trim: true },
     postedById: { type: Schema.Types.ObjectId, ref: "User", required: true },
@@ -85,6 +90,7 @@ const petSchema = new Schema(
 );
 
 petSchema.index({ status: 1, species: 1 });
+petSchema.index({ ageMonths: 1 });
 petSchema.index({ name: "text", breed: "text", description: "text" });
 
 export type PetDocument = InferSchemaType<typeof petSchema> & {
