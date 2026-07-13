@@ -8,7 +8,15 @@
     "build": "tsc",
     "start": "node dist/index.js",
     "lint": "eslint src",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "seed:trust": "tsx scripts/seed-trust-ratings.ts",
+    "seed:checkins": "tsx scripts/seed-checkins.ts",
+    "seed:available-ownership": "tsx scripts/seed-available-ownership.ts",
+    "migrate:ownership": "tsx scripts/migrate-ownership-history.ts",
+    "migrate:breeds": "tsx scripts/migrate-breeds.ts",
+    "migrate:age-months": "tsx scripts/migrate-age-months.ts",
+    "restore:ages": "tsx scripts/restore-ages-from-log.ts",
+    "fix:other-breeds": "tsx scripts/fix-other-breeds.ts"
   },
   "dependencies": {
     "bcryptjs": "^3.0.2",
