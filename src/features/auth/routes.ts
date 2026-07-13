@@ -24,10 +24,6 @@ router.post(
   validate(changePasswordSchema),
   authController.changePassword,
 );
-router.get(
-  "/users/:id",
-  validate(userIdParamsSchema, "params"),
-  authController.getPublicProfile,
-);
+router.get("/users/:id", validate(userIdParamsSchema, "params"), authController.getPublicProfile);
 
 export default router;

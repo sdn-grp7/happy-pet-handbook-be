@@ -163,6 +163,19 @@ export function getOpenApiSpec() {
             id: { type: "string", example: "665a1b2c3d4e5f6789012345" },
           },
         },
+        ContactMessage: {
+          type: "object",
+          properties: {
+            id: { type: "string" },
+            name: { type: "string" },
+            email: { type: "string", format: "email" },
+            message: { type: "string" },
+            status: { type: "string", enum: ["new", "resolved"] },
+            createdAt: { type: "string", format: "date-time" },
+            resolvedAt: { type: "string", format: "date-time" },
+            updatedAt: { type: "string", format: "date-time" },
+          },
+        },
       },
     },
     paths: {
@@ -380,6 +393,71 @@ export function getOpenApiSpec() {
               description: "Validation error",
               content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } },
             },
+          },
+        },
+      },
+      "/api/contact/admin/all": {
+        get: {
+          tags: ["Contact"],
+          summary: "List contact messages (admin)",
+          security: [{ bearerAuth: [] }],
+          responses: {
+            "200": {
+              description: "Contact message list",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: {
+                      messages: {
+                        type: "array",
+                        items: { $ref: "#/components/schemas/ContactMessage" },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+            "401": { description: "Unauthorized" },
+            "403": { description: "Admin only" },
+          },
+        },
+      },
+      "/api/contact/{id}": {
+        patch: {
+          tags: ["Contact"],
+          summary: "Update contact message status (admin)",
+          security: [{ bearerAuth: [] }],
+          parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }],
+          requestBody: {
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    status: { type: "string", enum: ["new", "resolved"], default: "resolved" },
+                  },
+                },
+              },
+            },
+          },
+          responses: {
+            "200": {
+              description: "Updated",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: {
+                      message: { $ref: "#/components/schemas/ContactMessage" },
+                    },
+                  },
+                },
+              },
+            },
+            "401": { description: "Unauthorized" },
+            "403": { description: "Admin only" },
+            "404": { description: "Not found" },
           },
         },
       },
