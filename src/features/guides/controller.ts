@@ -1,7 +1,12 @@
 import type { Request, Response } from "express";
 import { createReadStream, existsSync, statSync } from "node:fs";
+import { Readable } from "node:stream";
 import { AppError } from "../../shared/errors.js";
-import { destroyGuideAsset, uploadPdfBuffer } from "../auth/cloudinary.js";
+import {
+  destroyGuideAsset,
+  fetchGuidePdfFromCloudinary,
+  uploadPdfBuffer,
+} from "../auth/cloudinary.js";
 import { Guide } from "./model.js";
 import type { CreateGuideBody, UpdateGuideBody } from "./schemas.js";
 import { deleteGuidePdf, guideStoragePath, makeStorageKey, saveGuidePdf } from "./storage.js";
@@ -70,23 +75,42 @@ export async function getGuideBySlug(req: Request, res: Response) {
   res.json({ guide: toPublicGuide(guide as Parameters<typeof toPublicGuide>[0]) });
 }
 
-/** Stream PDF for pdf.js (local disk). */
+/** Stream PDF for pdf.js — local disk first, Cloudinary fallback (Render has ephemeral disk). */
 export async function streamGuidePdf(req: Request, res: Response) {
   const { slug } = req.params as { slug: string };
   const guide = await Guide.findOne({ slug, published: true });
-  if (!guide?.storageKey) throw new AppError(404, "Guide PDF not found");
+  if (!guide) throw new AppError(404, "Guide not found");
 
-  const path = guideStoragePath(guide.storageKey);
-  if (!existsSync(path)) throw new AppError(404, "Guide PDF file missing on server");
+  const setPdfHeaders = (contentLength?: string | null) => {
+    res.setHeader("Content-Type", "application/pdf");
+    if (contentLength) res.setHeader("Content-Length", contentLength);
+    res.setHeader("Content-Disposition", `inline; filename="${guide.slug}.pdf"`);
+    res.setHeader("Cache-Control", "public, max-age=3600");
+    res.setHeader("Accept-Ranges", "bytes");
+  };
 
-  const stat = statSync(path);
-  res.setHeader("Content-Type", "application/pdf");
-  res.setHeader("Content-Length", String(stat.size));
-  res.setHeader("Content-Disposition", `inline; filename="${guide.slug}.pdf"`);
-  res.setHeader("Cache-Control", "public, max-age=3600");
-  res.setHeader("Accept-Ranges", "bytes");
+  if (guide.storageKey) {
+    const path = guideStoragePath(guide.storageKey);
+    if (existsSync(path)) {
+      const stat = statSync(path);
+      setPdfHeaders(String(stat.size));
+      createReadStream(path).pipe(res);
+      return;
+    }
+  }
 
-  createReadStream(path).pipe(res);
+  if (guide.cloudinaryPublicId) {
+    const { body, contentLength } = await fetchGuidePdfFromCloudinary(guide.cloudinaryPublicId);
+    if (!body) throw new AppError(502, "Empty PDF response from Cloudinary");
+    setPdfHeaders(contentLength);
+    Readable.fromWeb(body as import("node:stream/web").ReadableStream).pipe(res);
+    return;
+  }
+
+  throw new AppError(
+    404,
+    "Guide PDF file missing on server — re-upload the PDF in admin (Render disk is ephemeral)",
+  );
 }
 
 export async function createGuide(req: Request, res: Response) {
