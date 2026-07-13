@@ -11,6 +11,7 @@ const router = Router();
 router.use("/health", healthRoutes);
 router.use("/auth", authRoutes);
 router.use("/community", communityRoutes);
+router.use("/v1/posts", communityRoutes);
 router.use("/contact", contactRoutes);
 router.use("/guides", guidesRoutes);
 router.use("/pets", petsRoutes);
