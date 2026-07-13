@@ -1,6 +1,6 @@
 import mongoose, { type PipelineStage } from "mongoose";
 import { AppError } from "../../shared/errors.js";
-import { Comment, Post } from "./model.js";
+import { Comment, Post, PostLike } from "./model.js";
 import type {
   CreateCommentBody,
   CreatePostBody,
@@ -15,6 +15,7 @@ export type FeedPost = {
   imageUrls: string[];
   tags: string[];
   likesCount: number;
+  likedByMe: boolean;
   commentsCount: number;
   createdAt: Date;
   authorDisplayName: string;
@@ -42,6 +43,7 @@ export type FeedComment = {
 type FetchOptions = {
   skip?: number;
   limit?: number;
+  currentUserId?: string;
 };
 
 function toObjectId(id: string) {
@@ -163,6 +165,7 @@ function postProjectionStage(): PipelineStage {
       imageUrls: 1,
       tags: 1,
       likesCount: 1,
+      likedByMe: { $ifNull: ["$likedByMe", false] },
       commentsCount: 1,
       createdAt: 1,
       authorDisplayName: 1,
@@ -194,7 +197,60 @@ function commentProjectionStage(): PipelineStage {
   };
 }
 
-function postReadStages(): PipelineStage[] {
+function postLikeStages(currentUserId?: string): PipelineStage[] {
+  if (!currentUserId) {
+    return [
+      {
+        $addFields: {
+          likedByMe: false,
+        },
+      },
+    ];
+  }
+
+  return [
+    {
+      $lookup: {
+        from: "postlikes",
+        let: { postId: "$_id" },
+        pipeline: [
+          {
+            $match: {
+              $expr: {
+                $and: [
+                  {
+                    $eq: ["$postId", "$$postId"],
+                  },
+                  {
+                    $eq: ["$userId", toObjectId(currentUserId)],
+                  },
+                ],
+              },
+            },
+          },
+          {
+            $limit: 1,
+          },
+          {
+            $project: {
+              _id: 1,
+            },
+          },
+        ],
+        as: "myPostLike",
+      },
+    },
+    {
+      $addFields: {
+        likedByMe: {
+          $gt: [{ $size: "$myPostLike" }, 0],
+        },
+      },
+    },
+  ];
+}
+
+function postReadStages(currentUserId?: string): PipelineStage[] {
   return [
     {
       $lookup: {
@@ -223,6 +279,7 @@ function postReadStages(): PipelineStage[] {
       },
     },
     ...authorStages(),
+    ...postLikeStages(currentUserId),
     postProjectionStage(),
   ];
 }
@@ -231,7 +288,7 @@ function commentReadStages(): PipelineStage[] {
   return [...authorStages(), commentProjectionStage()];
 }
 
-export async function fetchFeed({ skip = 0, limit = 20 }: FetchOptions = {}) {
+export async function fetchFeed({ skip = 0, limit = 20, currentUserId }: FetchOptions = {}) {
   const safeSkip = Math.max(Number(skip) || 0, 0);
   const safeLimit = Math.min(Math.max(Number(limit) || 20, 1), 50);
 
@@ -248,18 +305,18 @@ export async function fetchFeed({ skip = 0, limit = 20 }: FetchOptions = {}) {
     {
       $limit: safeLimit,
     },
-    ...postReadStages(),
+    ...postReadStages(currentUserId),
   ]);
 }
 
-export async function fetchPostById(postId: string) {
+export async function fetchPostById(postId: string, currentUserId?: string) {
   const [post] = await Post.aggregate<FeedPost>([
     {
       $match: {
         _id: toObjectId(postId),
       },
     },
-    ...postReadStages(),
+    ...postReadStages(currentUserId),
   ]);
 
   return post ?? null;
@@ -273,7 +330,7 @@ export async function createPost(userId: string, body: CreatePostBody) {
     tags: body.tags,
   });
 
-  const created = await fetchPostById(post._id.toString());
+  const created = await fetchPostById(post._id.toString(), userId);
   if (!created) throw new AppError(500, "Failed to create post");
   return created;
 }
@@ -289,7 +346,7 @@ export async function updatePost(postId: string, userId: string, body: UpdatePos
 
   await post.save();
 
-  const updated = await fetchPostById(postId);
+  const updated = await fetchPostById(postId, userId);
   if (!updated) throw new AppError(500, "Failed to update post");
   return updated;
 }
@@ -300,6 +357,7 @@ export async function deletePost(postId: string, userId: string) {
   assertOwner(post.userId, userId, "post");
 
   await Comment.deleteMany({ postId: post._id });
+  await PostLike.deleteMany({ postId: post._id });
   await post.deleteOne();
 }
 
@@ -388,4 +446,76 @@ export async function deleteComment(postId: string, commentId: string, userId: s
   assertOwner(comment.userId, userId, "comment");
 
   await comment.deleteOne();
+}
+
+export async function likePost(postId: string, userId: string) {
+  const postObjectId = toObjectId(postId);
+  const userObjectId = toObjectId(userId);
+  const exists = await Post.exists({ _id: postObjectId });
+  if (!exists) throw new AppError(404, "Post not found");
+
+  const result = await PostLike.updateOne(
+    {
+      postId: postObjectId,
+      userId: userObjectId,
+    },
+    {
+      $setOnInsert: {
+        postId: postObjectId,
+        userId: userObjectId,
+        createdAt: new Date(),
+      },
+    },
+    {
+      upsert: true,
+    },
+  );
+
+  if (result.upsertedCount > 0) {
+    await Post.updateOne({ _id: postObjectId }, { $inc: { likesCount: 1 } });
+  }
+
+  const post = await fetchPostById(postId, userId);
+  if (!post) throw new AppError(404, "Post not found");
+  return post;
+}
+
+export async function unlikePost(postId: string, userId: string) {
+  const postObjectId = toObjectId(postId);
+  const userObjectId = toObjectId(userId);
+  const exists = await Post.exists({ _id: postObjectId });
+  if (!exists) throw new AppError(404, "Post not found");
+
+  const result = await PostLike.deleteOne({
+    postId: postObjectId,
+    userId: userObjectId,
+  });
+
+  if (result.deletedCount > 0) {
+    await Post.collection.updateOne(
+      { _id: postObjectId },
+      [
+        {
+          $set: {
+            likesCount: {
+              $max: [0, { $subtract: [{ $ifNull: ["$likesCount", 0] }, 1] }],
+            },
+          },
+        },
+      ],
+    );
+  }
+
+  const post = await fetchPostById(postId, userId);
+  if (!post) throw new AppError(404, "Post not found");
+  return post;
+}
+
+export async function togglePostLike(postId: string, userId: string) {
+  const existing = await PostLike.exists({
+    postId: toObjectId(postId),
+    userId: toObjectId(userId),
+  });
+
+  return existing ? unlikePost(postId, userId) : likePost(postId, userId);
 }

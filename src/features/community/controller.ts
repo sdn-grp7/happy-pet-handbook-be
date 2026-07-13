@@ -19,13 +19,16 @@ import {
   fetchCommentsForPost,
   fetchFeed,
   fetchPostById,
+  likePost,
+  togglePostLike,
+  unlikePost,
   updateComment,
   updatePost,
 } from "./service.js";
 
 export async function getFeed(req: Request, res: Response) {
   const { skip, limit } = req.query as unknown as FeedQuery;
-  const posts = await fetchFeed({ skip, limit });
+  const posts = await fetchFeed({ skip, limit, currentUserId: req.user?.userId });
 
   res.json({
     posts,
@@ -39,7 +42,7 @@ export async function getFeed(req: Request, res: Response) {
 
 export async function getPost(req: Request, res: Response) {
   const { postId } = req.params as PostIdParams;
-  const post = await fetchPostById(postId);
+  const post = await fetchPostById(postId, req.user?.userId);
   if (!post) throw new AppError(404, "Post not found");
 
   res.json({ post });
@@ -65,6 +68,39 @@ export async function deletePostHandler(req: Request, res: Response) {
   await deletePost(postId, req.user!.userId);
 
   res.json({ ok: true });
+}
+
+export async function likePostHandler(req: Request, res: Response) {
+  const { postId } = req.params as PostIdParams;
+  const post = await likePost(postId, req.user!.userId);
+
+  res.json({
+    post,
+    likedByMe: post.likedByMe,
+    likesCount: post.likesCount,
+  });
+}
+
+export async function unlikePostHandler(req: Request, res: Response) {
+  const { postId } = req.params as PostIdParams;
+  const post = await unlikePost(postId, req.user!.userId);
+
+  res.json({
+    post,
+    likedByMe: post.likedByMe,
+    likesCount: post.likesCount,
+  });
+}
+
+export async function togglePostLikeHandler(req: Request, res: Response) {
+  const { postId } = req.params as PostIdParams;
+  const post = await togglePostLike(postId, req.user!.userId);
+
+  res.json({
+    post,
+    likedByMe: post.likedByMe,
+    likesCount: post.likesCount,
+  });
 }
 
 export async function listComments(req: Request, res: Response) {

@@ -35,6 +35,21 @@ const commentSchema = new Schema(
 commentSchema.index({ postId: 1, createdAt: -1 });
 commentSchema.index({ userId: 1, createdAt: -1 });
 
+const postLikeSchema = new Schema(
+  {
+    postId: { type: Schema.Types.ObjectId, ref: "Post", required: true, index: true },
+    userId: { type: Schema.Types.ObjectId, ref: "User", required: true, index: true },
+    createdAt: { type: Date, default: Date.now },
+  },
+  {
+    collection: "postlikes",
+    versionKey: false,
+  },
+);
+
+postLikeSchema.index({ postId: 1, userId: 1 }, { unique: true });
+postLikeSchema.index({ userId: 1, createdAt: -1 });
+
 export type PostDocument = InferSchemaType<typeof postSchema> & {
   _id: mongoose.Types.ObjectId;
 };
@@ -43,5 +58,10 @@ export type CommentDocument = InferSchemaType<typeof commentSchema> & {
   _id: mongoose.Types.ObjectId;
 };
 
+export type PostLikeDocument = InferSchemaType<typeof postLikeSchema> & {
+  _id: mongoose.Types.ObjectId;
+};
+
 export const Post = mongoose.model("Post", postSchema);
 export const Comment = mongoose.model("Comment", commentSchema);
+export const PostLike = mongoose.model("PostLike", postLikeSchema);

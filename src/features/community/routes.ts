@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { validate } from "../../shared/middleware/validate.js";
-import { requireAuth } from "../auth/middleware.js";
+import { optionalAuth, requireAuth } from "../auth/middleware.js";
 import * as communityController from "./controller.js";
 import {
   commentsQuerySchema,
@@ -15,7 +15,7 @@ import {
 
 const router = Router();
 
-router.get("/feed", validate(feedQuerySchema, "query"), communityController.getFeed);
+router.get("/feed", optionalAuth, validate(feedQuerySchema, "query"), communityController.getFeed);
 router.post("/", requireAuth, validate(createPostBodySchema), communityController.createPostHandler);
 
 router.get(
@@ -50,7 +50,26 @@ router.delete(
   communityController.deleteCommentHandler,
 );
 
-router.get("/:postId", validate(postIdParamsSchema, "params"), communityController.getPost);
+router.post(
+  "/:postId/likes",
+  requireAuth,
+  validate(postIdParamsSchema, "params"),
+  communityController.likePostHandler,
+);
+router.delete(
+  "/:postId/likes",
+  requireAuth,
+  validate(postIdParamsSchema, "params"),
+  communityController.unlikePostHandler,
+);
+router.post(
+  "/:postId/likes/toggle",
+  requireAuth,
+  validate(postIdParamsSchema, "params"),
+  communityController.togglePostLikeHandler,
+);
+
+router.get("/:postId", optionalAuth, validate(postIdParamsSchema, "params"), communityController.getPost);
 router.patch(
   "/:postId",
   requireAuth,
